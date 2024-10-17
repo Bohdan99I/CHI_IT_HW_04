@@ -1,35 +1,36 @@
 const apiURL = "https://rickandmortyapi.com/api/character";
 let currentPage = 1;
 let totalPages = 1;
+let isLoading = false;
 
-const charactersDiv = document.getElementById("characters");
-const prevButton = document.getElementById("prev");
-const nextButton = document.getElementById("next");
-const pageNumberSpan = document.getElementById("pageNumber");
-const loadingText = document.getElementById("loading");
+const charactersDiv = document.querySelector("#characters");
+const loadingText = document.querySelector("#loading");
 
-const modal = document.getElementById("modal");
+const modal = document.querySelector("#modal");
 const closeModal = document.querySelector(".close");
-const modalImage = document.getElementById("modal-image");
-const modalName = document.getElementById("modal-name");
-const modalStatus = document.getElementById("modal-status");
+const modalImage = document.querySelector("#modal-image");
+const modalName = document.querySelector("#modal-name");
+const modalStatus = document.querySelector("#modal-status");
 
 async function fetchCharacters(page = 1) {
-  charactersDiv.innerHTML = "";
+  if (isLoading || page > totalPages) return;
+
+  isLoading = true;
   loadingText.textContent = "Loading...";
+
   try {
     const response = await fetch(`${apiURL}?page=${page}`);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
     const data = await response.json();
     totalPages = data.info.pages;
-    updatePaginationButtons(page);
     displayCharacters(data.results);
     loadingText.textContent = "";
   } catch (error) {
     console.error("Помилка завантаження даних:", error);
     loadingText.textContent = "Failed to load data!";
   }
+
+  isLoading = false;
 }
 
 function displayCharacters(characters) {
@@ -44,21 +45,6 @@ function displayCharacters(characters) {
     charactersDiv.appendChild(characterDiv);
   });
 }
-
-function updatePaginationButtons(page) {
-  currentPage = page;
-  pageNumberSpan.textContent = `Page ${currentPage} of ${totalPages}`;
-  prevButton.disabled = currentPage === 1;
-  nextButton.disabled = currentPage === totalPages;
-}
-
-prevButton.addEventListener("click", () => {
-  if (currentPage > 1) fetchCharacters(currentPage - 1);
-});
-
-nextButton.addEventListener("click", () => {
-  if (currentPage < totalPages) fetchCharacters(currentPage + 1);
-});
 
 charactersDiv.addEventListener("click", async (event) => {
   const characterDiv = event.target.closest(".character");
@@ -96,4 +82,14 @@ window.addEventListener("click", (event) => {
   }
 });
 
-fetchCharacters();
+window.addEventListener("scroll", () => {
+  if (
+    window.innerHeight + window.scrollY >= document.body.offsetHeight - 100 &&
+    !isLoading
+  ) {
+    currentPage++;
+    fetchCharacters(currentPage);
+  }
+});
+
+fetchCharacters(currentPage);
